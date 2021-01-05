@@ -2,7 +2,7 @@ package config
 
 import "github.com/BurntSushi/toml"
 
-// Configuration struct have all fields from configuration JSON file
+// Configuration struct have all fields from configuration TOML file
 type Configuration struct {
 	Log Log
 }
