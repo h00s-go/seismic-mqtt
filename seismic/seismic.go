@@ -1,8 +1,6 @@
 package seismic
 
 import (
-	"encoding/json"
-	"log"
 	"net/url"
 
 	"github.com/gorilla/websocket"
@@ -45,12 +43,8 @@ func (s *Seismic) ReadMessages(e chan Event) {
 		for {
 			_, message, err := s.conn.ReadMessage()
 			if err == nil {
-				var event Event
-				err = json.Unmarshal([]byte(message), &event)
-				if err == nil {
+				if event, err := ParseEvent(message); err == nil {
 					e <- event
-				} else {
-					log.Println("Error parsing JSON")
 				}
 			}
 		}
