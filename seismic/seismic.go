@@ -1,13 +1,16 @@
 package seismic
 
 import (
+	"log"
 	"net/url"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 const urlHost = "www.seismicportal.eu"
 const urlPath = "/standing_order/websocket"
+const pongWait = 60 * time.Second
 
 // Seismic struct is object for communication with websocket
 type Seismic struct {
@@ -29,6 +32,8 @@ func (s *Seismic) Connect() error {
 		return err
 	}
 
+	s.conn.SetPongHandler(func(string) error { s.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+
 	return nil
 }
 
@@ -46,6 +51,10 @@ func (s *Seismic) ReadMessages(e chan Event) {
 				if event, err := ParseEvent(message); err == nil {
 					e <- event
 				}
+			} else {
+				log.Println(err)
+				s.Disconnect()
+				s.Connect()
 			}
 		}
 	}()
