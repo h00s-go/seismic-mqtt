@@ -34,6 +34,11 @@ func (s *Seismic) Connect() {
 		if err == nil {
 			s.connected = true
 			s.conn.SetPongHandler(func(string) error { s.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+			s.conn.SetCloseHandler(func(int, string) error {
+				log.Println("Closed connection to websocket.")
+				s.connected = false
+				return nil
+			})
 			log.Println("Connected to websocket!")
 			break
 		}
