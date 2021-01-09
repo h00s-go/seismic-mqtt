@@ -10,7 +10,8 @@ import (
 
 const urlHost = "www.seismicportal.eu"
 const urlPath = "/standing_order/websocket"
-const pongWait = 60 * time.Second
+const reconnectWait = 60 * time.Second
+const pingWait = 60 * time.Second
 
 // Seismic struct is object for communication with websocket
 type Seismic struct {
@@ -21,11 +22,13 @@ type Seismic struct {
 
 // New creates new Seismic object
 func New() *Seismic {
-	return &Seismic{
+	s := &Seismic{
 		conn:      nil,
 		connected: false,
 		Events:    make(chan Event),
 	}
+	go s.KeepAlive()
+	return s
 }
 
 // Connect connects to Seismic portal websocket
@@ -38,7 +41,7 @@ func (s *Seismic) Connect() {
 		s.conn, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
 		if err == nil {
 			s.connected = true
-			s.conn.SetPongHandler(func(string) error { s.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+			s.conn.SetPongHandler(func(string) error { return nil })
 			s.conn.SetCloseHandler(func(int, string) error {
 				log.Println("Closed connection to websocket.")
 				s.connected = false
@@ -47,7 +50,22 @@ func (s *Seismic) Connect() {
 			log.Println("Connected to websocket!")
 			break
 		}
-		time.Sleep(10 * time.Second)
+		time.Sleep(reconnectWait)
+	}
+}
+
+// KeepAlive keeps connection alive by sending pings
+func (s *Seismic) KeepAlive() {
+	ticker := time.NewTicker(pingWait)
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+		if s.connected {
+			if err := s.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				log.Println("Error while sending ping.")
+			}
+		}
 	}
 }
 
