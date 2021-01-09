@@ -16,9 +16,6 @@ func main() {
 	}
 
 	s := seismic.New()
-	if err := s.Connect(); err != nil {
-		log.Fatal(err)
-	}
 	defer s.Disconnect()
 
 	interrupt := make(chan os.Signal, 1)

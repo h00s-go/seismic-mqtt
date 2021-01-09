@@ -14,31 +14,36 @@ const pongWait = 60 * time.Second
 
 // Seismic struct is object for communication with websocket
 type Seismic struct {
-	conn *websocket.Conn
+	conn      *websocket.Conn
+	connected bool
 }
 
 // New creates new Seismic object
 func New() *Seismic {
-	return new(Seismic)
+	return &Seismic{conn: nil, connected: false}
 }
 
 // Connect connects to Seismic portal websocket
-func (s *Seismic) Connect() error {
+func (s *Seismic) Connect() {
 	u := url.URL{Scheme: "wss", Host: urlHost, Path: urlPath}
 
 	var err error
-	s.conn, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
-	if err != nil {
-		return err
+	for {
+		log.Println("Trying to connect to websocket...")
+		s.conn, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
+		if err == nil {
+			s.connected = true
+			s.conn.SetPongHandler(func(string) error { s.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+			log.Println("Connected to websocket!")
+			break
+		}
+		time.Sleep(10 * time.Second)
 	}
-
-	s.conn.SetPongHandler(func(string) error { s.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-
-	return nil
 }
 
 // Disconnect disconnects from Seismic portal websocket
 func (s *Seismic) Disconnect() error {
+	s.connected = false
 	return s.conn.Close()
 }
 
@@ -46,6 +51,9 @@ func (s *Seismic) Disconnect() error {
 func (s *Seismic) ReadMessages(e chan Event) {
 	go func() {
 		for {
+			if !s.connected {
+				s.Connect()
+			}
 			_, message, err := s.conn.ReadMessage()
 			if err == nil {
 				if event, err := ParseEvent(message); err == nil {
@@ -54,7 +62,6 @@ func (s *Seismic) ReadMessages(e chan Event) {
 			} else {
 				log.Println(err)
 				s.Disconnect()
-				s.Connect()
 			}
 		}
 	}()
