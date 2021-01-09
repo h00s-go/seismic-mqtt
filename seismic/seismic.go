@@ -16,11 +16,16 @@ const pongWait = 60 * time.Second
 type Seismic struct {
 	conn      *websocket.Conn
 	connected bool
+	Events    chan Event
 }
 
 // New creates new Seismic object
 func New() *Seismic {
-	return &Seismic{conn: nil, connected: false}
+	return &Seismic{
+		conn:      nil,
+		connected: false,
+		Events:    make(chan Event),
+	}
 }
 
 // Connect connects to Seismic portal websocket
@@ -53,7 +58,7 @@ func (s *Seismic) Disconnect() error {
 }
 
 // ReadMessages reads new events (json) from seismic portal, parse it and sends to channel
-func (s *Seismic) ReadMessages(e chan Event) {
+func (s *Seismic) ReadMessages() {
 	go func() {
 		for {
 			if !s.connected {
@@ -62,7 +67,7 @@ func (s *Seismic) ReadMessages(e chan Event) {
 			_, message, err := s.conn.ReadMessage()
 			if err == nil {
 				if event, err := ParseEvent(message); err == nil {
-					e <- event
+					s.Events <- event
 				}
 			} else {
 				log.Println(err)

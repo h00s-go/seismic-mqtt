@@ -21,12 +21,10 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	events := make(chan seismic.Event)
-	s.ReadMessages(events)
-
+	s.ReadMessages()
 	for {
 		select {
-		case e := <-events:
+		case e := <-s.Events:
 			log.Println(e)
 		case <-interrupt:
 			return
