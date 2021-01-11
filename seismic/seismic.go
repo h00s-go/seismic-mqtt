@@ -27,7 +27,7 @@ func New() *Seismic {
 		connected: false,
 		Events:    make(chan Event),
 	}
-	go s.KeepAlive()
+	go s.keepAlive()
 	return s
 }
 
@@ -54,8 +54,8 @@ func (s *Seismic) Connect() {
 	}
 }
 
-// KeepAlive keeps connection alive by sending pings
-func (s *Seismic) KeepAlive() {
+// keepAlive keeps connection alive by sending pings
+func (s *Seismic) keepAlive() {
 	ticker := time.NewTicker(pingWait)
 	defer ticker.Stop()
 
