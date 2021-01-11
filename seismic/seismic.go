@@ -41,31 +41,12 @@ func (s *Seismic) Connect() {
 		s.conn, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
 		if err == nil {
 			s.connected = true
-			s.conn.SetPongHandler(func(string) error { return nil })
-			s.conn.SetCloseHandler(func(int, string) error {
-				log.Println("Closed connection to websocket.")
-				s.connected = false
-				return nil
-			})
+			s.conn.SetPongHandler(s.pongHandler)
+			s.conn.SetCloseHandler(s.closeHandler)
 			log.Println("Connected to websocket!")
 			break
 		}
 		time.Sleep(reconnectWait)
-	}
-}
-
-// keepAlive keeps connection alive by sending pings
-func (s *Seismic) keepAlive() {
-	ticker := time.NewTicker(pingWait)
-	defer ticker.Stop()
-
-	for {
-		<-ticker.C
-		if s.connected {
-			if err := s.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
-				log.Println("Error while sending ping.")
-			}
-		}
 	}
 }
 
@@ -93,4 +74,29 @@ func (s *Seismic) ReadMessages() {
 			}
 		}
 	}()
+}
+
+// keepAlive keeps connection alive by sending pings
+func (s *Seismic) keepAlive() {
+	ticker := time.NewTicker(pingWait)
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+		if s.connected {
+			if err := s.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				log.Println("Error while sending ping.")
+			}
+		}
+	}
+}
+
+func (s *Seismic) pongHandler(string) error {
+	return nil
+}
+
+func (s *Seismic) closeHandler(code int, text string) error {
+	log.Println("Closed connection to websocket:", text)
+	s.connected = false
+	return nil
 }
