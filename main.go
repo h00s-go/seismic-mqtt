@@ -6,7 +6,7 @@ import (
 	"os/signal"
 
 	"github.com/h00s-go/seismic-mqtt/config"
-	"github.com/h00s-go/seismic-mqtt/seismic"
+	"github.com/h00s/goseismic"
 )
 
 func main() {
@@ -15,13 +15,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	s := seismic.New()
+	s := goseismic.NewSeismic()
+	s.Connect()
 	defer s.Disconnect()
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	s.ReadMessages()
 	for {
 		select {
 		case e := <-s.Events:
